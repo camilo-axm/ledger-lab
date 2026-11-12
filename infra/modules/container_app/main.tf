@@ -78,8 +78,9 @@ resource "azurerm_container_app" "this" {
     for_each = var.secret_ids
     content {
       name                = secret.key
-      key_vault_secret_id = secret.value
-      identity            = azurerm_user_assigned_identity.app.id
+      key_vault_secret_id = var.logs_enabled ? secret.value : null
+      identity            = var.logs_enabled ? azurerm_user_assigned_identity.app.id : null
+      value               = var.logs_enabled ? null : var.secret_values[secret.key]
     }
   }
 
