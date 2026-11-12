@@ -33,6 +33,17 @@ variable "secret_ids" {
   }
 }
 
+variable "secret_values" {
+  description = "Valores de secretos para ambientes que no soportan referencias de Key Vault."
+  type        = map(string)
+  sensitive   = true
+
+  validation {
+    condition     = alltrue([for name in ["database-url", "jwt-secret"] : contains(keys(var.secret_values), name)])
+    error_message = "secret_values debe incluir database-url y jwt-secret."
+  }
+}
+
 variable "environment_variables" {
   description = "Variables de entorno no secretas."
   type        = map(string)
