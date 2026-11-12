@@ -28,7 +28,7 @@ resource "azurerm_container_app_environment" "this" {
   name                       = "cae-${var.name}"
   resource_group_name        = var.resource_group_name
   location                   = var.location
-  logs_destination           = var.logs_enabled ? "log-analytics" : null
+  logs_destination           = var.logs_enabled ? "log-analytics" : "azure-monitor"
   log_analytics_workspace_id = var.logs_enabled ? azurerm_log_analytics_workspace.this[0].id : null
   tags                       = var.tags
 
