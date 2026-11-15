@@ -29,9 +29,9 @@ mock_provider "azurerm" {
       principal_id = "00000000-0000-0000-0000-000000000003"
     }
   }
-  mock_resource "azurerm_container_app_environment" {
+  mock_resource "azurerm_resource_group" {
     defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.App/managedEnvironments/cae"
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg"
     }
   }
   mock_resource "azurerm_log_analytics_workspace" {
@@ -46,7 +46,13 @@ mock_provider "azurerm" {
   }
 }
 
-mock_provider "azapi" {}
+mock_provider "azapi" {
+  mock_resource "azapi_resource" {
+    defaults = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.App/managedEnvironments/cae"
+    }
+  }
+}
 mock_provider "random" {}
 mock_provider "time" {}
 
@@ -147,4 +153,26 @@ run "el_tope_de_replicas_protege_el_credito" {
   }
 
   expect_failures = [var.max_replicas]
+}
+
+run "prod_puede_usar_un_ambiente_existente" {
+  command = apply
+
+  variables {
+    environment                  = "prod"
+    container_app_environment_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ledger-dev/providers/Microsoft.App/managedEnvironments/cae-ledger-dev"
+  }
+
+  assert {
+    condition     = module.app.creates_environment == false
+    error_message = "Con un ambiente existente no se debe crear otro."
+  }
+  assert {
+    condition     = endswith(module.app.environment_id, "/managedEnvironments/cae-ledger-dev")
+    error_message = "La app debe publicarse en el ambiente indicado."
+  }
+  assert {
+    condition     = azurerm_resource_group.this.name == "rg-ledger-prod"
+    error_message = "Los demas recursos siguen siendo propios de prod."
+  }
 }
