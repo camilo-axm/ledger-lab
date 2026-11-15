@@ -60,12 +60,29 @@ METERS = {
         "Hot LRS Data Stored",
         "1 GB/Month",
     ),
+    "acr_basic_day": (
+        "serviceName eq 'Container Registry' and skuName eq 'Basic'",
+        "Basic Registry Unit",
+        "1/Day",
+    ),
+    "acr_standard_day": (
+        "serviceName eq 'Container Registry' and skuName eq 'Standard'",
+        "Standard Registry Unit",
+        "1/Day",
+    ),
+    "acr_premium_day": (
+        "serviceName eq 'Container Registry' and skuName eq 'Premium'",
+        "Premium Registry Unit",
+        "1/Day",
+    ),
     "blob_10k_writes": (
         "serviceName eq 'Storage' and productName eq 'Blob Storage' and skuName eq 'Hot LRS'",
         "Hot LRS Write Operations",
         "10K",
     ),
 }
+
+DAYS_PER_MONTH = 30
 
 # Recursos sin cargo propio: su costo aparece, si lo hay, en los recursos que los usan.
 FREE_RESOURCES = {
@@ -194,9 +211,20 @@ def estimate_plan(name: str, plan: dict, usage: dict, book: PriceBook, grant: di
             storage = usage["state_storage_gb"] * book.price("blob_gb_month", region)
             writes = usage["state_writes_per_month"] / 10_000 * book.price("blob_10k_writes", region)
             lines.append(Line(name, address, storage + writes, f"{usage['state_storage_gb']} GB"))
+        elif kind == "azurerm_container_registry":
+            lines.append(_container_registry(name, address, values, region, book))
         else:
             unknown.append(address)
     return lines, unknown
+
+
+def _container_registry(env, address, values, region, book) -> Line:
+    # El registro cobra por dia segun el SKU, se use o no: es un costo fijo del ambiente.
+    sku = str(values.get("sku", "")).lower()
+    if sku not in ("basic", "standard", "premium"):
+        raise PriceNotFound(f"SKU de Container Registry sin regla de precio: {sku or 'vacio'}")
+    cost = book.price(f"acr_{sku}_day", region) * DAYS_PER_MONTH
+    return Line(env, address, cost, f"SKU {sku.capitalize()}, {DAYS_PER_MONTH} dias")
 
 
 def _container_app(env, address, values, usage, region, book, grant) -> Line:

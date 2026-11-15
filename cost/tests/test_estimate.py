@@ -19,6 +19,9 @@ PRICES = {
     "log_gb_ingested": 2.3,
     "blob_gb_month": 0.02,
     "blob_10k_writes": 0.05,
+    "acr_basic_day": 0.1666,
+    "acr_standard_day": 0.6666,
+    "acr_premium_day": 1.6666,
 }
 
 
@@ -101,6 +104,29 @@ def test_free_sql_with_autopause_costs_zero():
 def test_sql_that_can_bill_is_not_reported_as_free(kwargs):
     lines, _ = cost.estimate({"dev": plan(database(**kwargs))}, usage(), book())
     assert total(lines) == pytest.approx(10 * 0.5 + 1 * 0.1)
+
+
+def registry(sku="Basic"):
+    return {"address": "azurerm_container_registry.this", "mode": "managed",
+            "type": "azurerm_container_registry", "values": {"sku": sku}}
+
+
+def test_container_registry_is_billed_per_day():
+    lines, unknown = cost.estimate({"dev": plan(registry())}, usage(), book())
+    assert unknown == []
+    assert total(lines) == pytest.approx(0.1666 * 30)
+
+
+def test_container_registry_sku_changes_the_price():
+    basic, _ = cost.estimate({"dev": plan(registry("Basic"))}, usage(), book())
+    premium, _ = cost.estimate({"dev": plan(registry("Premium"))}, usage(), book())
+    assert total(premium) == pytest.approx(1.6666 * 30)
+    assert total(premium) > total(basic)
+
+
+def test_container_registry_with_unknown_sku_is_an_error():
+    with pytest.raises(cost.PriceNotFound):
+        cost.estimate({"dev": plan(registry("Classic"))}, usage(), book())
 
 
 def test_unknown_resource_is_reported():
