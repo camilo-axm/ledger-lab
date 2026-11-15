@@ -176,6 +176,8 @@ def estimate_plan(name: str, plan: dict, usage: dict, book: PriceBook, grant: di
             continue
         if kind == "azurerm_container_app":
             lines.append(_container_app(name, address, values, usage, region, book, grant))
+        elif kind == "azapi_resource" and "Microsoft.App/managedEnvironments" in values.get("type", ""):
+            continue  # El plan de consumo no cobra por el ambiente.
         elif kind == "azapi_resource" and "Microsoft.Sql/servers/databases" in values.get("type", ""):
             lines.append(_azapi_database(name, address, values, usage, region, book))
         elif kind == "azurerm_mssql_database":

@@ -8,6 +8,11 @@ variable "resource_group_name" {
   type        = string
 }
 
+variable "resource_group_id" {
+  description = "ID del grupo de recursos, donde se crea el ambiente de Container Apps."
+  type        = string
+}
+
 variable "location" {
   description = "Region de Azure."
   type        = string
@@ -55,6 +60,12 @@ variable "logs_enabled" {
   description = "Crea un workspace de Log Analytics con tope diario."
   type        = bool
   default     = false
+}
+
+variable "existing_environment_id" {
+  description = "Ambiente de Container Apps ya creado. Con null el modulo crea uno propio."
+  type        = string
+  default     = null
 }
 
 variable "rbac_propagation_wait" {
